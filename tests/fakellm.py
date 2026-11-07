@@ -15,6 +15,12 @@ class H(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
     def do_POST(self):
         n = int(self.headers.get('Content-Length', 0)); req = json.loads(self.rfile.read(n))
+        # only a chat is a question: llmclient also asks Ollama's
+        # /api/show for a model's context length, which spends no reply
+        if not self.path.endswith('/chat/completions'):
+            body = b'{}'
+            self.send_response(404); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
+            return
         log.write(json.dumps(req, indent=1)+"\n"); log.flush()
         msgs = req.get("messages", [])
         user = [m for m in msgs if m.get("role")=="user"]
