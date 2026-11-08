@@ -272,10 +272,8 @@ The order of work in CORPUS.md stands. Before it, the move:
      (`/lib/phil/argue-work`), since that reading is checked and retried
      in its own way; it moves onto `read` when `read` can take that
      check.
-   - A reader that is a host command (`os claude -p ...`) is not
-     confined by InferNode's name space, and its readings say so. Only
-     the API, `/mnt/llm`, or a reader inside InferNode is blinded by
-     construction.
+   - A reader is a session at `/mnt/llm` and nothing else: a model is
+     chosen by what is mounted there, never by a command the tools run.
 
 Then CORPUS.md's steps 1 to 8, with `questions` at step 4 beside
 `align` (the same protocol) and `split` at step 6 beside `schemes`.
