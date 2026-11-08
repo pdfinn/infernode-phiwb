@@ -1,0 +1,5 @@
+atom	p	the server is patched
+atom	s	the server is secure
+P1	S1	p
+A1	-	p -> s
+C	S2	s

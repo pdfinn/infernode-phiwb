@@ -15,18 +15,16 @@
 # is given the instructions and the question and nothing else.  /net
 # too is an empty directory: the model is reached through /mnt/llm,
 # whose server makes the call from its own name space, with its own
-# key.  A reader that is a host command ($llm beginning os) runs outside
-# InferNode's name space and is not confined by it; the reading says
-# so, confined=none.
+# key.
 #
 # Each reading's first line is # header (-H), and its last is its
 # provenance, a comment of attr=value words (last, so that it moves no
-# line the prover names): who read it, asked how (ask -s), with which
-# instructions and their hash (the first twelve digits of their SHA-1),
-# when, and how confined (namespace, or none for a host command) and
-# with what network (none; host, for a host command):
+# line the prover names): who read it, asked how (the session's
+# temperature, maxtokens and thinking files), with which instructions
+# and their hash (the first twelve digits of their SHA-1), when, and how
+# confined (by the name space) and with what network (none):
 #	# read model=claude-opus-5-5 temperature=default maxtokens=8192 thinking=off prompt=/lib/phil/argue prompthash=7f3a9c1e2b4d date=2026-10-19 confined=namespace net=none
-# A value with a blank in it is quoted as sh quotes (model='os claude -p').
+# A value with a blank in it is quoted as sh quotes it.
 # grep '^# read ' finds them; sed 's/.* model=//' or tokenize reads them.
 # Where there is an audit log (/mnt/audit/log, or $philaudit), each
 # reading kept is sealed in it: the SHA-256 of its statements (phil/audit
@@ -51,8 +49,10 @@
 # taken as it is, unchecked: a reader's way of saying there is nothing
 # to read (# no argument).
 #
-# The model is reached through ask(1), as $llm says; -m names it.
+# The model is the one at /mnt/llm, a session of it opened for each
+# reader (/lib/phil/llm); -m names it.
 load std
+run /lib/phil/llm
 
 fn usage {
 	echo 'usage: phil/read [-k n] [-m model] [-H header] [-K lines] [-c checker] [-d doc] [-r again] [-z line] -o out prompt question' >[1=2]
@@ -109,27 +109,18 @@ if {~ $#again 0} {
 	again=$question
 }
 
-who=`{ask -n $m}
-if {~ $#who 0} {
-	raise 'fail:no model'
-}
+# who reads, and how: a session opened to say
+llmopen $m
+who=`{llmname}
 who=$"who
+how=`{llmsettings}
+how=$"how
+echo close > $session/ctl
 # the instructions, by a hash of what they say
 hash=`{sha1sum $prompt}
 hash=`{echo ${hd $hash} | sed 's/^(............).*/\1/'}
 day=`{date | awk 'BEGIN { split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", mn, " "); for(i = 1; i <= 12; i++) mi[mn[i]] = sprintf("%02d", i) } { printf "%s-%s-%02d\n", $NF, mi[$2], $3 }'}
-# how it is asked
-how=`{ask -s $m >[2] /dev/null}
-if {~ $#how 0} {
-	how='temperature=unknown maxtokens=unknown thinking=unknown'
-}
-how=$"how
-# the model at /mnt/llm, or a command; one beginning os runs on the host
-way=${hd ${split ' 	' $"llm}}
 blind='confined=namespace net=none'
-if {~ $way os} {
-	blind='confined=none net=host'
-}
 
 # out's directory, as a name: what a reader must not see
 dir=`{cleanname -d `{pwd} $out | sed 's,/[^/]*$,,'}
@@ -161,7 +152,7 @@ fn seal {
 	}
 }
 
-# ask in out's stead: a reader of its own, blinded; the question on its
+# a reader of its own, blinded; the question on its
 # standard input
 fn reader {
 	q=$1
@@ -183,7 +174,11 @@ fn reader {
 		}
 		cd $empty
 		pctl nodevs
-		ask $m $prompt
+		llmopen $m
+		cat $prompt > $session/system
+		cat > $session/ask
+		cat $session/ask
+		echo close > $session/ctl
 	} < $q > $a
 }
 

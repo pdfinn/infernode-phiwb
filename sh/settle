@@ -4,8 +4,8 @@
 # logic files over one vocabulary (phil/read -k, each reader given the
 # first reading's atoms); the prover compares them (phil/prove -c) and,
 # where they differ, asks a question, yes or no, about a situation that
-# tells them apart.  Each question goes to a model afresh, through
-# ask(1) with the instructions in /lib/phil/settle, after the text of
+# tells them apart.  Each question goes afresh to the model at /mnt/llm
+# (/lib/phil/llm), with the instructions in /lib/phil/settle, after the text of
 # -p (the document's sentences, as the readers had them); with -q the
 # questions are left for a person (phil/prove -c -a answers them).  The
 # answers rule readings out; of those left, the one that, read back,
@@ -18,6 +18,7 @@
 # the answers, and which reading was kept.  -x gives findings their
 # characters, as phil/prove -x does.
 load std
+run /lib/phil/llm
 
 fn usage {
 	echo 'usage: phil/settle [-qx] [-m model] [-p preamble] -d document reading ...' >[1=2]
@@ -63,13 +64,17 @@ rm -f $first^.answers
 qs=`{grep '^# question [^:]*:' $first^.cmp | sed 's/^# question ([^:]*):.*/\1/'}
 if {~ $#q 0} {
 	for key in $qs {
+		llmopen $m
+		cat /lib/phil/settle > $session/system
 		{
 			if {! ~ $#pre 0} {
 				cat $pre
 				echo
 			}
 			grep '^# question '^$key^': ' $first^.cmp | sed 's/^# question [^:]*: //'
-		} | ask $m /lib/phil/settle > $first^.yn
+		} > $session/ask
+		cat $session/ask > $first^.yn
+		echo close > $session/ctl
 		# a model may reason first: the answer is the last line
 		# that is only yes or no, else the reply's first word
 		yn=`{tr A-Z a-z < $first^.yn | sed -n 's/^[^a-z]*(yes|no)[^a-z]*$/\1/p' | tail -1}

@@ -10,9 +10,8 @@
 # file for the document: the model reads the text cold, given only that
 # file's atoms, and phil/prove compares its reading with the writer's,
 # sentence by sentence, to show where the prose does not say what the
-# writer meant.  The model is reached through ask(1): $llm says
-# how (the Anthropic API with factotum's key, unless it names another
-# API, a command such as the host's Claude CLI, or /mnt/llm).
+# writer meant.  The model is the one at /mnt/llm (llmsrv(4), or one
+# mounted there), its sessions opened by /lib/phil/llm.
 #
 # A long work (a chapter, an article, a thesis) is read with -w part by
 # part: its sections, cut at paragraphs into pieces of -p sentences or
@@ -41,6 +40,7 @@
 # where its rule and its sentence are, whatever its statement is called.
 # argue/runs-agree says whether every run's verdict was the same.
 load std
+run /lib/phil/llm
 
 # the logic file's formulas in logic's own symbols, ¬ ∧ ∨ → ∀ □ O, as
 # the prover shows them; left as it is if the prover cannot read it
@@ -236,11 +236,10 @@ m=()
 if {! ~ $#model 0} {
 	m=(-m $model)
 }
-who=`{ask -n $m}
-if {~ $#who 0} {
-	raise 'fail:no model'
-}
+llmopen $m
+who=`{llmname}
 who=$"who
+echo close > $session/ctl
 r=()
 if {! ~ $#range 0} {
 	r=(-r $range)
@@ -366,6 +365,8 @@ if {~ $#w 1} {
 		first=${hd $rs}^-^`{echo ${hd $rs} + $psize | calc}
 		last=`{echo ${hd ${tl $rs}} - $psize | calc}^-^${hd ${tl $rs}}
 	}
+	llmopen $m
+	cat /lib/phil/argue-work > $session/system
 	{
 		echo 'The atoms:'
 		echo
@@ -389,7 +390,9 @@ if {~ $#w 1} {
 		wwb/sentences -m -t -r $last $f
 		echo
 		echo 'Number further steps from C'^`{echo $nc + 1 | calc}^' and assumptions from A'^`{echo $na + 1 | calc}^'.'
-	} | ask $m /lib/phil/argue-work > $parts/top
+	} > $session/ask
+	cat $session/ask > $parts/top
+	echo close > $session/ctl
 	{
 		echo '#' the argument of $f as $who read it, part by part: check that it says what the text says
 		grep '^(#|atom	|A[0-9]+	|C[0-9]*	)' $parts/top > $parts/top.kept
@@ -399,6 +402,8 @@ if {~ $#w 1} {
 	if {grep -s 'argue/(syntax|no-sentence|no-conclusion|duplicate|undefined)' $parts/check} {
 		echo '#' the prover could not read how the parts are joined: $who is asked again
 		grep 'argue/(syntax|no-sentence|no-conclusion|duplicate|undefined)' $parts/check
+		llmopen $m
+		cat /lib/phil/argue-work > $session/system
 		{
 			echo 'You were asked to join the steps of this argument:'
 			echo
@@ -413,7 +418,9 @@ if {~ $#w 1} {
 			grep 'argue/(syntax|no-sentence|no-conclusion|duplicate|undefined)' $parts/check
 			echo
 			echo 'Write your lines again, corrected, and nothing else.'
-		} | ask $m /lib/phil/argue-work > $parts/top
+		} > $session/ask
+		cat $session/ask > $parts/top
+		echo close > $session/ctl
 		{
 			echo '#' the argument of $f as $who read it, part by part: check that it says what the text says
 			grep '^(#|atom	|A[0-9]+	|C[0-9]*	)' $parts/top > $parts/top.kept
@@ -426,6 +433,8 @@ if {~ $#w 1} {
 	asm=`{grep '^A[0-9]+	' $parts/top.kept | sed 's/	.*//'}
 	if {! ~ $#asm 0} {
 		phil/prove -e $logic > $parts/says >[2=1]
+		llmopen $m
+		cat /lib/phil/argue-work > $session/system
 		{
 			echo 'You joined the steps of this argument with these lines:'
 			echo
@@ -444,7 +453,9 @@ if {~ $#w 1} {
 			echo 'If one does not, because an atom is used in a sense other than the one'
 			echo 'it declares, write all your lines again, corrected, and nothing else:'
 			echo 'declare a new atom for a claim no atom states.'
-		} | ask $m /lib/phil/argue-work > $parts/top2
+		} > $session/ask
+		cat $session/ask > $parts/top2
+		echo close > $session/ctl
 		if {! grep -s '^# as meant' $parts/top2} {
 			if {grep -s '^C	' $parts/top2} {
 				cp $logic $parts/before

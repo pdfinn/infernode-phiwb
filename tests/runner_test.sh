@@ -21,8 +21,10 @@ trap 'rm -rf "$tmp"' EXIT
 cp data/argue/steps/kalam.logic "$tmp/it's a b.logic"
 out=$(cd "$tmp" && "$here/phil" map "it's a b.logic") || no 'a name with a blank and a quote failed'
 echo "$out" | grep -q 'C (S5)' || no "a name with a blank and a quote: $out"
-# argue reaches a model: LLM goes to $llm, and the model's
-# file is proved
+# argue reaches a model: llmsrv for the backend LLM names, and the
+# model's file is proved; LLM naming no backend is refused
+out=$(LLM='os claude -p' "$here/phil" argue data/argue/sample.md 2>&1) && no 'LLM naming no backend succeeded'
+echo "$out" | grep -q 'LLM is anthropic' || no "LLM naming no backend: $out"
 if command -v python3 > /dev/null; then
 	port=$(python3 -I -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')
 	python3 -I "$here/tests/fakellm.py" "$port" "$tmp/requests" "$here/tests/data/argue/reply" &

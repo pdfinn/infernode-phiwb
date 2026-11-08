@@ -32,7 +32,7 @@ Workbench, which the Writer's Workbench was built on.
 | Moves to ϕwb | Stays in wwb | ϕwb reaches through a bind |
 |---|---|---|
 | `argue`, `prove`, `join`, `map`, `tableau` | every prose check; `claims`, `facts`, `bib` | `sentences`, `deroff`: the exact addresses that make a finding clickable |
-| `corpus`, `read`, `settle`, `readable` (built); `align`, `cases`, `ledger`, `agenda`, `schemes`, `contest`, `split` (to come) | `review`, `rewrite`, `vet`, `judge`, `gate`, `delta`, `tally`, `grade` | (`ask`, the one way to a model, has since moved to InferNode as `ask(1)`, with `$llm`) |
+| `corpus`, `read`, `settle`, `readable` (built); `align`, `cases`, `ledger`, `agenda`, `schemes`, `contest`, `split` (to come) | `review`, `rewrite`, `vet`, `judge`, `gate`, `delta`, `tally`, `grade` | (`ask`, once the one way to a model, is gone: the tools use `/mnt/llm`'s files themselves) |
 | the logic file, its manual, `lib/argue*`, `lib/settle`, `tests/cases/argue-*`, `prove-*`, `tests/prove-bench` | the rule packs, the OED, the tagger and parser, `wwbfs` | `gate` and `delta`, which read ϕwb's findings unchanged |
 
 The dependency is a mount, not a copy. `philns` binds `wwb/` into the
@@ -104,12 +104,11 @@ commands extracted from `argue`:
   driving agent's line, `agent=<name>`, is a proposal with that
   provenance and never outweighs a person's. A reading's own line
   (`# read model=...`) also gives the settings it was asked with
-  (`ask -s`: `temperature=`, `maxtokens=`, `thinking=`), which the
-  2026 guidance for reproducible model use in the humanities asks for
-  beside model, version, date and prompt, and how it was confined:
-  `confined=namespace`, or, for a reader that is a host command,
-  `confined=none net=host`. Still to add: a seed, where a provider
-  takes one.
+  (`temperature=`, `maxtokens=`, `thinking=`, read from the session's
+  files at `/mnt/llm`), which the 2026 guidance for reproducible model
+  use in the humanities asks for beside model, version, date and
+  prompt, and how it was confined: `confined=namespace net=none`.
+  Still to add: a seed, where a provider takes one.
 - **Blinded to the corpus, not to its training.** A reader cannot see
   the other readings or the answers. It can recall what it read in
   training, and the faults of the gold set are the literature's. So

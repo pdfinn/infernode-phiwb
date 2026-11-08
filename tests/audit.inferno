@@ -1,13 +1,17 @@
 #!/dis/sh.dis
-# audit.inferno phildir wwbdir - phil/audit against a live audit log:
-# readings sealed by phil/read and phil/argue are backed; one changed or
-# written by hand is not; a reader cannot seal a record of its own.
-# Run by tests/audit_test.sh.
+# audit.inferno phildir wwbdir port - phil/audit against a live audit
+# log: readings sealed by phil/read and phil/argue, read through a real
+# llmsrv whose backend is tests/fakellm.py, are backed; one changed or
+# written by hand is not.  Run by tests/audit_test.sh.
 load std
 
 phil=$1
 wwb=${hd ${tl $*}}
+port=${hd ${tl ${tl $*}}}
+bind -a '#I' /net
+ndb/cs
 run $phil/philns $phil $wwb
+llmsrv -b openai -u http://127.0.0.1:^$port^/v1 -M fake-model
 cd $phil/tests
 rm -rf out/audit
 mkdir -p out/audit
@@ -22,19 +26,6 @@ echo 'The server is patched. So the server is secure.' > $d/doc.md
 echo 'Read it.' > $d/question
 
 echo '# a reading, sealed'
-# a reader that also tries to seal a record of its own
-{
-	echo 'load std'
-	echo 'sh -c ''echo phil/read reading sha256=forged > '^$philaudit^''' >[2] /dev/null'
-	echo 'cat > /dev/null'
-	echo 'echo ''atom	p	the server is patched'''
-	echo 'echo ''atom	s	the server is secure'''
-	echo 'echo ''P1	S1	p'''
-	echo 'echo ''A1	-	p -> s'''
-	echo 'echo ''C	S2	s'''
-} > /tmp/phil.reader.^${pid}
-# a name with no # in it: the command is sh's to parse
-llm='sh /tmp/phil.reader.'^${pid}
 phil/read -o $d/one /lib/phil/argue $d/question
 phil/audit -c $m/chain $d/one
 echo status $status
@@ -69,12 +60,7 @@ echo 'C	S1	p' > $d/hand
 phil/audit -c $m/chain $d/hand
 
 echo '# the chain'
-if {grep -s 'sha256=forged' $m/chain} {
-	echo a reader sealed a record
-} {
-	echo no record of the reader
-}
 cat $m/chain | auditverify
 unmount $m
-rm -rf $m /tmp/phil.reader.^${pid}
+rm -rf $m
 echo halt > /dev/sysctl

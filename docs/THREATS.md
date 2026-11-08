@@ -186,11 +186,12 @@ prompt is filed under another's hash; the host-command reader
   gives it with the model and the date. Not yet built: a hash over
   prompt, text and model together, under which a rerun with the same
   three would return the kept reading.
-- **The host-command reader says `confined=none`**, by design
-  (PHIL.md, step 0's leavings); `tests/read_test.sh` checks it. A bench
-  run that used it is marked.
+- **There is no host-command reader any more.** A model is reached
+  only through `/mnt/llm`, so no reader runs outside InferNode's name
+  space; one that ran in a bench run before is marked there
+  (`confined=none`).
 - **The provenance line carries the settings** the model was asked
-  with (`ask -s`: temperature, maxtokens, thinking), as the 2026
+  with (temperature, maxtokens, thinking, from the session's files), as the 2026
   guidance for reproducible model use in the humanities asks beside
   model, version, access date and prompt. Not yet: a seed, where a
   provider takes one.
@@ -283,12 +284,15 @@ In order of what they close:
 - **A verdict written into a corpus file by hand is not read.**
   `ledger` rebuilt ignores it; `corpus/stale` names it if its id is
   gone.
-- **The host-command reader's provenance says `confined=none`.** Done:
-  `tests/read_test.sh`.
+- **The host-command reader's provenance says `confined=none`.** Done,
+  and then moot: the host-command reader is gone.
 - **Decoding settings in the provenance line.** Done; to be
   round-tripped through `read`'s kept-reading lookup when that is
   built.
 - **A reader cannot open `/net`, the corpus directory, another
-  reading, or `answers`.** Done: `tests/read_test.sh`, a reader that is
-  a program sees an empty `/net`, whatever the model; the model is
-  `/mnt/llm`'s server's to call.
+  reading, or `answers`.** Done, and tested while a reader could be a
+  program inside InferNode. Now a reader is a session at `/mnt/llm`,
+  whose server runs in its own name space, so no reader code runs in
+  the blinded one: the model sees what it is sent, the instructions and
+  the question, and nothing else. The blinding is kept, and is no
+  longer tested by a reader that looks.

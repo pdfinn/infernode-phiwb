@@ -1,9 +1,11 @@
 # answer.py [-m model] - phil/settle's yes-or-no questions answered by a
 # small natural-language-inference model on the host, not a language
-# model: a command for ask(1)'s $llm, given the instructions, a blank
-# line and the question on its standard input, printing yes or no.
-#
-#	llm='os python3 /path/to/tools/nli/answer.py' phil/argue -k 3 x.md
+# model: given the instructions, a blank line and the question on its
+# standard input, it prints yes or no.  It was run as a command in
+# place of a model, a way the tools no longer have (they reach a model
+# only through /mnt/llm); bench/nlicmp.py runs it on the host.  To
+# settle with it again it would be served as an OpenAI-compatible API
+# for llmsrv to use.
 #
 # A situation question ("Suppose "A" and "B" are true and "C" is false.
 # Is S2, "...", true then?") is a pair: what is supposed the premise, the

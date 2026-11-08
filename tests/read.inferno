@@ -1,62 +1,46 @@
 #!/dis/sh.dis
-# read.inferno phildir wwbdir peek - phil/read's readers, by a reader
-# (peek, a script in the emulator's /tmp) that looks for what it should
-# not see and says what it saw, as comments, which read keeps; run by
-# tests/read_test.sh.
+# read.inferno phildir wwbdir port - phil/read through a real llmsrv
+# whose backend is tests/fakellm.py, answering with data/read/replies:
+# one reading, three, and a reader whose file the prover never can
+# read; run by tests/read_test.sh.
 load std
 
 phil=$1
 wwb=${hd ${tl $*}}
-peek=${hd ${tl ${tl $*}}}
+port=${hd ${tl ${tl $*}}}
+bind -a '#I' /net
+ndb/cs
 run $phil/philns $phil $wwb
+llmsrv -b openai -u http://127.0.0.1:^$port^/v1 -M fake-model
 cd $phil/tests
 rm -rf out/read
 mkdir -p out/read
-echo 'atom	p	the server is patched' > out/read/other.logic
-echo 'SECRET' > out/read/secret
 echo 'The server is patched.' > out/read/doc.md
 echo 'Is it?' > out/read/question
-here=`{pwd}
-d=$here/out/read
 
-echo '# the reader, unblinded'
-echo | sh $peek $d
-echo '# the reader, through phil/read'
-# quoted: a name that starts with # would be a comment to sh -c
-llm='sh '^$peek^' '''^$d^''''
+echo '# one reader'
 phil/read -H 'a test' -o out/read/one /lib/phil/argue out/read/question
 echo status $status
 cat out/read/one
-
-echo '# the readings under a name, not a device'
-d2=/tmp/phil.readtest.^${pid}
-mkdir -p $d2
-echo 'atom	p	the server is patched' > $d2/other.logic
-echo 'SECRET' > $d2/secret
-echo | sh $peek $d2 | grep 'saw in the readings|read the secret'
-echo '# through phil/read, under a name'
-llm='sh '^$peek^' '^$d2
-phil/read -o $d2/one /lib/phil/argue out/read/question
-echo status $status
-cat $d2/one
-rm -rf $d2
 
 echo '# three readers'
 phil/read -k 3 -o out/read/three /lib/phil/argue out/read/question
 echo status $status
 for f in out/read/three.1 out/read/three.2 out/read/three.3 {
-	grep -s '^# read model=''sh .*'' temperature=unknown maxtokens=unknown thinking=unknown prompt=/lib/phil/argue prompthash=[0-9a-f]+ date=[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] confined=namespace net=none$' $f && echo $f has its provenance
+	grep -s '^# read model=fake-model temperature=[^ ]+ maxtokens=8192 thinking=[^ ]+ prompt=/lib/phil/argue prompthash=[0-9a-f]+ date=[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] confined=namespace net=none$' $f && echo $f has its provenance
+}
+
+if {ftest -f out/read/three.4} {
+	echo a fourth reading
 }
 
 echo '# a reader that never writes a file the prover can read'
-llm='cat > /dev/null; echo ''atom	p	the server is patched'''
 phil/read -c phil/readable -d out/read/doc.md -o out/read/bad /lib/phil/argue out/read/question
 echo status $status
 ftest -f out/read/bad && echo the reading is kept
 
-echo '# a host command'
-llm='os sh -c ''cat > /dev/null; printf "atom\tp\tthe server is patched\nC\tS1\tp\n"'''
-phil/read -o out/read/host /lib/phil/argue out/read/question
+echo '# no model'
+unmount /mnt/llm
+phil/read -o out/read/none /lib/phil/argue out/read/question >[2=1]
 echo status $status
-grep '^# read ' out/read/host
 echo halt > /dev/sysctl

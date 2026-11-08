@@ -139,15 +139,20 @@ entering InferNode, as wwb's `./wwb` does:
 ```sh
 ./phil prove argument.logic argument.md
 ANTHROPIC_API_KEY=... ./phil argue -k 3 -m claude-opus-5-5 chapter.md
-LLM="os claude -p --tools '' --model opus --system-prompt {system}" ./phil argue -k 3 chapter.md
+LLM='openai http://localhost:11434/v1' ./phil argue -k 3 -m llama3.1 chapter.md
 ```
 
-`argue`, `senses` and `claims` reach a model through InferNode's
-`ask(1)`: the model at `/mnt/llm`, or a command. From the host, `LLM`
-(`WWBMODEL` is its old name) chooses: `anthropic [url]`, the default, or
-`openai url`, which `./phil` has `llmsrv` serve at `/mnt/llm` with the
-key; anything else is a command, `ask`'s `$llm`. A reader never has the
-network or the key: the server does. The whole
+`argue`, `senses`, `claims`, `read` and `settle` reach a model only
+through the files at `/mnt/llm` (`llmsrv(4)`, or a model mounted from
+another machine): each opens a session there, writes the instructions to
+its `system` and the text to its `ask`, reads the answer back from
+`ask`, and closes it (`lib/phil/llm` holds the few lines that open one).
+From the host, `LLM` (`WWBMODEL` is its old name) names the backend
+`./phil` has `llmsrv` serve: `anthropic`, the default, `anthropic url`,
+or `openai url`. A reader never has the network or the key: the server
+does. With a Claude subscription and no API key, InferNode's claude-gate
+(`tools/claude-gate/`) puts the Claude CLI behind an OpenAI-compatible
+API for llmsrv to use. The whole
 document goes to the model; for one that must not leave the machine, use
 a local model.
 
@@ -163,7 +168,7 @@ cd demo
 ```
 
 These read a text with a model (`ANTHROPIC_API_KEY` set, or `LLM`
-naming another way), each writing a file the next reads:
+naming another backend), each writing a file the next reads:
 
 ```sh
 ../phil argue -k 3 -o cosmos.logic cosmos.md   # read the argument three times, settle, prove

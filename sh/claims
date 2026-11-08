@@ -12,6 +12,7 @@
 # file is written to logicfile (file.claims by default), its formulas
 # in logic's symbols.
 load std
+run /lib/phil/llm
 
 fn usage {
 	echo 'usage: phil/claims [-m model] [-r a-b] [-V vocab] [-o logicfile] file' >[1=2]
@@ -51,11 +52,10 @@ if {! ftest -f $f} {
 if {~ $#logic 0} {
 	logic=$f^.claims
 }
-who=`{ask -n $m}
-if {~ $#who 0} {
-	raise 'fail:no model'
-}
+llmopen $m
+who=`{llmname}
 who=$"who
+echo close > $session/ctl
 
 {
 	echo 'The sentences, numbered:'

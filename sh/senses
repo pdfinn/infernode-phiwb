@@ -1,8 +1,8 @@
 #!/dis/sh.dis
 # phil/senses [-x] [-m model] [-r a-b] -d document logicfile - whether
 # the argument read in logicfile moves between two senses of one word.
-# The argument is put to a model afresh, through ask(1) with the
-# instructions in /lib/phil/senses: the document's sentences, each
+# The argument is put afresh to the model at /mnt/llm (/lib/phil/llm),
+# with the instructions in /lib/phil/senses: the document's sentences, each
 # statement in words (phil/prove -e), and each claim (atom) more than
 # one statement uses.  The model answers two questions.  Is each claim
 # meant in one sense throughout, or in two, and which statements take
@@ -20,6 +20,7 @@
 # It is not run by phil/argue: it reads a reading, any reading, as
 # phil/prove does.  phil/argue -o x.logic doc; phil/senses -d doc x.logic
 load std
+run /lib/phil/llm
 
 fn usage {
 	echo 'usage: phil/senses [-x] [-m model] [-r a-b] -d document logicfile' >[1=2]
@@ -105,6 +106,8 @@ if {! ftest -s $logic^.words} {
 	rm -f $logic^.shared $logic^.words
 	exit
 }
+llmopen $m
+cat /lib/phil/senses > $session/system
 {
 	echo 'The sentences, numbered:'
 	echo
@@ -131,13 +134,12 @@ if {! ftest -s $logic^.words} {
 					print "  " $i
 			}
 		}' $logic^.words $logic^.shared
-} | ask $m /lib/phil/senses > $logic^.senses.new
+} > $session/ask
+cat $session/ask > $logic^.senses.new
 # who answered, by what instructions, when: as a reading says it
-who=`{ask -n $m}
-how=`{ask -s $m >[2] /dev/null}
-if {~ $#how 0} {
-	how='temperature=unknown maxtokens=unknown thinking=unknown'
-}
+who=`{llmname}
+how=`{llmsettings}
+echo close > $session/ctl
 hash=`{sha1sum /lib/phil/senses}
 hash=`{echo ${hd $hash} | sed 's/^(............).*/\1/'}
 day=`{date | awk 'BEGIN { split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", mn, " "); for(i = 1; i <= 12; i++) mi[mn[i]] = sprintf("%02d", i) } { printf "%s-%s-%02d\n", $NF, mi[$2], $3 }'}

@@ -1,0 +1,53 @@
+# run /lib/phil/llm - the phil tools' way to a language model: the
+# files of the one at /mnt/llm (llmsrv(4), or a model mounted from
+# another machine), with no command between.  A tool runs this file and
+# then works a session's files itself:
+#
+#	llmopen $m			# m is (), or (-m model)
+#	cat instructions > $session/system
+#	... > $session/ask
+#	cat $session/ask > answer
+#	echo close > $session/ctl
+#
+# llmopen [-m model] opens a session, names it in $session, chooses
+# the model if one is given, and lets the answer be long (maxtokens
+# 8192); with nothing at /mnt/llm it says so and fails.  llmname prints
+# the session's model, or unknown for a server started with none;
+# llmsettings prints how it asks, as attr=value words, for a reading's
+# provenance:
+#
+#	temperature=0.70 maxtokens=8192 thinking=disabled
+#
+# Their own variables are local (:=), so that they change none of the
+# tool's; $session is the one they set.
+
+fn llmopen {
+	a := $*
+	if {! ftest -f /mnt/llm/new} {
+		echo 'phil: no model at /mnt/llm: start llmsrv, or mount one' >[1=2]
+		raise 'fail:no model'
+	}
+	id := `{cat /mnt/llm/new}
+	session=/mnt/llm/$id
+	if {~ ${hd $a} -m} {
+		echo ${hd ${tl $a}} > $session/model
+	}
+	if {ftest -f $session/maxtokens} {
+		echo 8192 > $session/maxtokens
+	}
+}
+
+fn llmname {
+	n := `{cat $session/model}
+	if {~ $#n 0} {
+		n=unknown
+	}
+	echo $"n
+}
+
+fn llmsettings {
+	t := `{cat $session/temperature}
+	k := `{cat $session/maxtokens}
+	h := `{cat $session/thinking}
+	echo 'temperature='^$"t 'maxtokens='^$"k 'thinking='^$"h
+}

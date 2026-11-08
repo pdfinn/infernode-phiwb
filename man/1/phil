@@ -301,11 +301,20 @@ and this manual as
 The workbench reads prose through the Writer's Workbench: its sentence
 numbering
 .RI ( wwb/sentences ),
-and its prose library; and reaches a model through InferNode's
-.IR ask (1),
-with
-.B $llm
-to choose one.
+and its prose library; and reaches a model only through the files at
+.B /mnt/llm
+.RI ( llmsrv (4),
+or a model mounted there): a session opened with
+.BR new ,
+the instructions written to its
+.BR system ,
+the text to its
+.BR ask ,
+the answer read back from
+.BR ask ,
+and the session closed
+.RB ( /lib/phil/llm
+opens one).
 If
 .B /dis/wwb
 is not in the name space,
@@ -486,11 +495,6 @@ is an empty directory too: the model is reached through
 whose server
 .RI ( llmsrv )
 makes the call from its own name space with its own key.
-A reader that is a host command
-.RB ( $llm
-beginning
-.BR os )
-runs outside InferNode's name space and is not confined by it.
 Each reading's first line is
 .BI # " header"
 .RB ( -H ),
@@ -501,10 +505,10 @@ words, as
 writes them: who read it
 .RB ( model ),
 asked how
-.RB ( "ask -s" :
-.BR temperature ,
+.RB ( temperature ,
 .BR maxtokens ,
-.BR thinking ),
+.BR thinking ,
+read from the session's files),
 with which instructions
 .RB ( prompt ,
 and
@@ -512,14 +516,9 @@ and
 the first twelve digits of their SHA-1), when
 .RB ( date ),
 how confined
-.RB ( confined=namespace ,
-or
-.B none
-for a host command) and with what network
-.RB ( net=none ,
-or
-.B host
-for a host command).
+.RB ( confined=namespace )
+and with what network
+.RB ( net=none ).
 A value with a blank in it is quoted as
 .IR sh (1)
 quotes it.

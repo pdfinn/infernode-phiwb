@@ -19,12 +19,13 @@
 # in, built (mk install).  PHILFLAGS adds emulator flags (default -c1,
 # compiled).
 #
-# argue, senses and claims reach a language model (through InferNode's
-# ask(1)): for them the emulator is given the network, and a factotum
-# holding $ANTHROPIC_API_KEY and $OPENAI_API_KEY if they are set here;
-# the keys go to factotum, not to InferNode's environment.  LLM (or
-# WWBMODEL, its old name) is passed on as $llm (openai
-# http://localhost:11434/v1, say, or os claude -p), and https_proxy and
+# argue, senses, claims, read and settle reach a language model
+# through /mnt/llm: for them the emulator is given the network, a
+# factotum holding $ANTHROPIC_API_KEY and $OPENAI_API_KEY if they are
+# set here (the keys go to factotum, not to InferNode's environment),
+# and an llmsrv(4) for the backend LLM (or WWBMODEL, its old name)
+# names: anthropic, the default, or anthropic url, or openai url
+# (openai http://localhost:11434/v1 for Ollama, say); https_proxy and
 # no_proxy as they are.
 #
 # PHILAUDIT names a host file to keep an audit log in (auditfs(4)): each
@@ -77,7 +78,7 @@ if {ftest -f $t/audit} {
 	mount -c {auditfs -f `{cat $t/audit}} $a
 	philaudit=$a/log
 }
-# a model's way: the network, factotum and its keys, $llm
+# a model's way: the network, factotum and its keys, llmsrv
 if {ftest -f $t/setup} {
 	bind -a '#I' /net >[2] /dev/null
 	ndb/cs
@@ -104,7 +105,7 @@ fi
 # rc's quoting: in quotes, a quote is doubled
 q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"; }
 case $cmd in
-argue|senses|claims)
+argue|senses|claims|read|settle)
 	(
 	umask 077
 	: > "$tmp/setup"
@@ -118,20 +119,19 @@ argue|senses|claims)
 	done
 	echo "keys=($keys)" >> "$tmp/setup"
 	# LLM (or WWBMODEL, its old name): a backend for llmsrv to serve at
-	# /mnt/llm (anthropic [url], the default; openai url), or a command,
-	# which becomes ask(1)'s $llm
+	# /mnt/llm (anthropic [url], the default; openai url)
 	model=${LLM:-${WWBMODEL:-}}
 	case $model in
 	''|llm|anthropic)	echo 'serve=1' >> "$tmp/setup";;
 	'anthropic '*)	printf 'serve=1\nserveargs=(-u %s)\n' "$(q "${model#anthropic }")" >> "$tmp/setup";;
 	'openai '*)	printf 'serve=1\nserveargs=(-b openai -u %s)\n' "$(q "${model#openai }")" >> "$tmp/setup";;
-	*)		echo "llm=$(q "$model")" >> "$tmp/setup";;
+	*)		echo "phil: LLM is anthropic, anthropic url or openai url, not $model" >&2; exit 2;;
 	esac
 	for v in https_proxy HTTPS_PROXY no_proxy NO_PROXY; do
 		eval "val=\${$v:-}"
 		[ -n "$val" ] && echo "$v=$(q "$val")" >> "$tmp/setup"
 	done
-	)
+	) || exit 2
 	;;
 esac
 # host paths as InferNode sees them

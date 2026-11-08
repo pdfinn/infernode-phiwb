@@ -121,8 +121,8 @@ Each sentence that gives a claim as someone else's, and whose: by rule,
 from the words' parts of speech, with no model.  "We hold" is the
 writer's own, and is not listed.
 
-8. With a model (llmsrv at /mnt/llm, a key in factotum, or $llm;
-   see ask(1))
+8. With a model (llmsrv at /mnt/llm, with a key in factotum; see
+   llmsrv(4))
 
 argue has the model read the document three times and write the
 logic; where the readings differ, prove asks a question that tells
